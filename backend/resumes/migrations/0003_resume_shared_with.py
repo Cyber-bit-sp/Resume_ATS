@@ -1,0 +1,18 @@
+from django.conf import settings
+from django.db import migrations, models
+
+
+class Migration(migrations.Migration):
+
+    dependencies = [
+        migrations.swappable_dependency(settings.AUTH_USER_MODEL),
+        ("resumes", "0002_resume_resume_template"),
+    ]
+
+    operations = [
+        migrations.AddField(
+            model_name="resume",
+            name="shared_with",
+            field=models.ManyToManyField(blank=True, related_name="shared_resumes", to=settings.AUTH_USER_MODEL),
+        ),
+    ]
