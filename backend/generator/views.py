@@ -16,7 +16,7 @@ from .models import ResumeGeneration
 from .pdf_builder import build_resume_pdf_bytes
 from .registry import registry_response_payload, save_bytes_to_resume_registry, save_file_to_resume_registry
 from .serializers import GenerateResumeSerializer, ResumeGenerationSerializer
-from .services import generate_resume_sections, render_resume_text
+from .services import build_automatic_job_description, generate_resume_sections, render_resume_text
 
 
 def _filename_token(value, fallback):
@@ -41,16 +41,32 @@ class GenerateResumeView(APIView):
         resume = Resume.objects.filter(
             Q(id=data["resume_id"], user=request.user) | Q(id=data["resume_id"], shared_with=request.user)
         ).distinct().first()
-        job = JobDescription.objects.filter(id=data["job_description_id"], user=request.user).first()
         prompt = None
+        job = None
 
-        if not resume or not job:
-            return Response({"detail": "Resume or job description was not found."}, status=status.HTTP_404_NOT_FOUND)
+        if not resume:
+            return Response({"detail": "Resume was not found."}, status=status.HTTP_404_NOT_FOUND)
 
         if data.get("prompt_id"):
             prompt = Prompt.objects.filter(id=data["prompt_id"], user=request.user).first()
             if not prompt:
                 return Response({"detail": "Selected prompt was not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        if data.get("job_description_id"):
+            job = JobDescription.objects.filter(id=data["job_description_id"], user=request.user).first()
+            if not job:
+                return Response({"detail": "Selected job description was not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        if not job:
+            job = JobDescription.objects.create(
+                user=request.user,
+                job_title="Generated Role",
+                company_name="Generated Company",
+                description_text=build_automatic_job_description(resume.original_text, prompt.prompt_text if prompt else data.get("custom_prompt", ""))["description_text"],
+                job_url="",
+                location="",
+                work_type="",
+            )
 
         template = None
         if resume.resume_template_id:

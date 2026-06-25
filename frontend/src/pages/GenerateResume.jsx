@@ -7,39 +7,25 @@ import api from "../api/client";
 export default function GenerateResume() {
   const navigate = useNavigate();
   const [resumes, setResumes] = useState([]);
-  const [jobs, setJobs] = useState([]);
   const [prompts, setPrompts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const needsResume = !resumes.length;
-  const needsJob = !jobs.length;
-  const missingSetup = needsResume || needsJob;
+  const needsPrompt = !prompts.length;
+  const missingSetup = needsResume || needsPrompt;
   const [form, setForm] = useState({
     resume_id: "",
-    job_description_id: "",
     prompt_id: "",
   });
 
   useEffect(() => {
     async function load() {
-      const [resumeResponse, jobResponse, promptResponse] = await Promise.all([
+      const [resumeResponse, promptResponse] = await Promise.all([
         api.get("/resumes/"),
-        api.get("/jobs/"),
         api.get("/prompts/"),
       ]);
       setResumes(resumeResponse.data);
-      setJobs(jobResponse.data);
       setPrompts(promptResponse.data);
-
-      const lastCapturedJobId = localStorage.getItem("atsLastCapturedJobId") || "";
-      const hasCapturedJob = jobResponse.data.some((item) => String(item.id) === lastCapturedJobId);
-
-      setForm((current) => ({
-        ...current,
-        job_description_id:
-          current.job_description_id
-          || (hasCapturedJob ? lastCapturedJobId : ""),
-      }));
     }
     load();
   }, []);
@@ -51,7 +37,6 @@ export default function GenerateResume() {
     try {
       const payload = new FormData();
       payload.append("resume_id", String(Number(form.resume_id)));
-      payload.append("job_description_id", String(Number(form.job_description_id)));
       if (form.prompt_id) {
         payload.append("prompt_id", String(Number(form.prompt_id)));
       }
@@ -71,31 +56,27 @@ export default function GenerateResume() {
 
   return (
     <>
-      <header className="page-header"><h1>Generate Resume</h1><p>Select the source resume and target job. If no DOCX template exists, a clean default format is generated automatically.</p></header>
+      <header className="page-header"><h1>Generate Resume</h1><p>Select the source resume and prompt. The job description is generated automatically from your chosen inputs when you click Generate.</p></header>
       <form className="workspace-form" onSubmit={submit}>
         <div className="two-col">
           <label>Resume<select value={form.resume_id} onChange={(e) => setForm({ ...form, resume_id: e.target.value })} required>
             <option value="">Choose resume</option>
             {resumes.map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}
           </select></label>
-          <label>Job<select value={form.job_description_id} onChange={(e) => setForm({ ...form, job_description_id: e.target.value })} required>
-            <option value="">Choose job</option>
-            {jobs.map((item) => <option key={item.id} value={item.id}>{item.job_title} {item.company_name ? `· ${item.company_name}` : ""}</option>)}
-          </select></label>
+          <label>Prompt
+            <select value={form.prompt_id} onChange={(e) => setForm({ ...form, prompt_id: e.target.value })}>
+              <option value="">No saved prompt</option>
+              {prompts.map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}
+            </select>
+          </label>
         </div>
-        <label>Prompt
-          <select value={form.prompt_id} onChange={(e) => setForm({ ...form, prompt_id: e.target.value })}>
-            <option value="">No saved prompt</option>
-            {prompts.map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}
-          </select>
-        </label>
         {missingSetup && (
           <p className="error">
-            {needsResume && needsJob
-              ? "Save an original resume and a job description before generating."
+            {needsResume && needsPrompt
+              ? "Save an original resume and a prompt before generating."
               : needsResume
                 ? "Save an original resume before generating."
-                : "Save a job description before generating."}
+                : "Save a prompt before generating."}
           </p>
         )}
         {error && <p className="error">{error}</p>}

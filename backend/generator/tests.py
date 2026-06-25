@@ -19,6 +19,7 @@ from .services import (
     _extract_contact,
     _normalize_sections,
     _skill_line,
+    build_automatic_job_description,
     generate_resume_sections,
     render_resume_text,
 )
@@ -37,6 +38,15 @@ class ResumeGenerationServiceTests(SimpleTestCase):
             _generation_download_name(generation, "docx"),
             "alex_alan_fullstack-software-engineer_20260526_213719.docx",
         )
+
+    def test_automatic_job_description_uses_prompt_text_when_available(self):
+        auto_job = build_automatic_job_description(
+            "Senior Python engineer with Django and React experience.",
+            "Target a backend-focused platform role with API design and cloud deployment.",
+        )
+
+        self.assertEqual(auto_job["job_title"], "Generated Role")
+        self.assertIn("backend-focused platform role", auto_job["description_text"])
 
     def test_resume_registry_uses_resume_title_folder(self):
         with tempfile.TemporaryDirectory() as temp_dir:

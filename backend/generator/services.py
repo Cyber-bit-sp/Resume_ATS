@@ -217,6 +217,40 @@ def _extract_contact(resume_text):
     return " | ".join(lines) if lines else "Email | Phone | Location | LinkedIn"
 
 
+def build_automatic_job_description(resume_text, prompt_text):
+    prompt_text = (prompt_text or "").strip()
+    resume_text = (resume_text or "").strip()
+    prompt_hint = prompt_text.splitlines()[0] if prompt_text else ""
+    resume_hint = ""
+    for line in resume_text.splitlines():
+        if line.strip():
+            resume_hint = line.strip()
+            break
+
+    inferred_keywords = []
+    for keyword in ["python", "django", "react", "api", "postgresql", "docker", "aws", "llm", "agents", "backend", "frontend"]:
+        if keyword.lower() in (prompt_text + " " + resume_text).lower():
+            inferred_keywords.append(keyword)
+
+    keywords_text = ", ".join(inferred_keywords[:6]) if inferred_keywords else "software engineering"
+    title = "Generated Role"
+    description = (
+        f"Target a {keywords_text} role that emphasizes strong execution, clear communication, and impact. "
+        f"{prompt_hint or 'Use the selected resume and prompt to tailor the output for this role.'}"
+    )
+    if resume_hint:
+        description = f"{description} Base the content on the resume context: {resume_hint}."
+
+    return {
+        "job_title": title,
+        "company_name": "Generated Company",
+        "description_text": description,
+        "job_url": "",
+        "location": "",
+        "work_type": "",
+    }
+
+
 SKILL_CATEGORIES = [
     ("Frontend", ("react", "typescript", "javascript", "react native", "html5", "html", "css3", "css", "redux", "angular", "vue")),
     ("Backend", ("node.js", "node", "python", "django", "fastapi", "flask", "express.js", "express", "rest api", "rest apis", "graphql", "api", "apis", "java", "spring", ".net", "c#")),
